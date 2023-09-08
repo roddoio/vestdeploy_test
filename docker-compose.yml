@@ -1,0 +1,53 @@
+version: "3.7"
+services:
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      # copy the sql script to create tables
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+  api:
+    image: rgarciaroddo/vesttest_api:latest
+    restart: always
+    environment:
+      - URL_KF_ORDERS=https://pkc-lgk0v.us-west1.gcp.confluent.cloud/kafka/v3/clusters/lkc-pkmpzy/topics/orders/records
+      - API_KEY_KF_CLUSTER=3UG7LZEFZFIPCEAT
+      - API_SECRET_KF_CLUSTER=P2YrMqL254KNj/hGpJ+RCj1CQqEAWrb3n+zx+moX8wmO5Yenokq/ii5d8shl9RGc
+      - DB_VEST_CON=postgresql://postgres:postgres@db/vest
+    external_links:
+      - db
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+  eps:
+    image: rgarciaroddo/vesttest_serv:latest
+    restart: always
+    environment:
+      - CONN_DB=User ID=postgres;Password=postgres;Host=db;Port=5432;Database=vest;Pooling=true;Connection Lifetime=0;
+    external_links:
+      - db
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    command: /app/getting-started.properties
+    depends_on:
+      - db
+networks:
+  initexample:
+    driver: bridge
